@@ -8,3 +8,5 @@ pub mod engine;
 
 pub use engine::{HelixDb, EngineOptions};
 pub use types::{InternalKey, KeyValue, ValueType};
+pub use distributed::{DistributedHelixCluster, Node, ConsistentHashRing};
+

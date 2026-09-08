@@ -120,3 +120,45 @@ fn test_consistent_hash_ring() {
     assert!(!node_a.id.is_empty());
     assert!(!node_b.id.is_empty());
 }
+
+#[test]
+fn test_distributed_helix_cluster() {
+    use helix_lsm::distributed::DistributedHelixCluster;
+
+    let dir1 = tempdir().unwrap();
+    let dir2 = tempdir().unwrap();
+    let db1 = HelixDb::open(dir1.path(), EngineOptions::default()).unwrap();
+    let db2 = HelixDb::open(dir2.path(), EngineOptions::default()).unwrap();
+
+    let mut cluster = DistributedHelixCluster::new(64);
+    cluster.add_shard(
+        Node { id: "node-1".into(), address: "127.0.0.1:9001".into() },
+        db1.clone(),
+    );
+    cluster.add_shard(
+        Node { id: "node-2".into(), address: "127.0.0.1:9002".into() },
+        db2.clone(),
+    );
+
+    assert_eq!(cluster.node_count(), 2);
+
+    // Write keys across the cluster
+    for i in 0..100 {
+        let key = format!("clustered_key_{}", i);
+        let val = format!("clustered_val_{}", i);
+        cluster.put(key.as_bytes(), val.as_bytes()).unwrap();
+    }
+
+    // Read back all keys through the cluster router
+    for i in 0..100 {
+        let key = format!("clustered_key_{}", i);
+        let expected_val = format!("clustered_val_{}", i);
+        let res = cluster.get(key.as_bytes()).unwrap();
+        assert_eq!(res, Some(Bytes::from(expected_val)));
+    }
+
+    // Delete a key
+    cluster.delete(b"clustered_key_42").unwrap();
+    assert_eq!(cluster.get(b"clustered_key_42").unwrap(), None);
+}
+

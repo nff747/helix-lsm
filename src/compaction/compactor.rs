@@ -79,20 +79,31 @@ impl CompactionManager {
     }
 
     /// Execute Level-0 to Level-1 compaction routine.
-    /// Merges overlapping SSTables, purges stale versions and expired tombstones.
     pub fn compact_l0_to_l1(&mut self) -> io::Result<()> {
-        if self.manifest.levels[0].is_empty() {
+        self.compact_level(0)
+    }
+
+    /// Generalized multi-level compaction routine from level `L_i` to `L_{i+1}`.
+    /// Merges overlapping SSTables, dedupes MVCC versions, and purges obsolete tombstones
+    /// when cascading to bottom levels.
+    pub fn compact_level(&mut self, source_level: usize) -> io::Result<()> {
+        if source_level >= MAX_LEVELS - 1 {
+            return Ok(());
+        }
+        let target_level = source_level + 1;
+
+        if self.manifest.levels[source_level].is_empty() {
             return Ok(());
         }
 
-        let l0_files = self.manifest.levels[0].clone();
-        let l1_files = self.manifest.levels[1].clone();
+        let source_files = self.manifest.levels[source_level].clone();
+        let target_files = self.manifest.levels[target_level].clone();
 
-        // 1. Initialize zero-memory streaming iterators from L0 and L1 tables
+        // 1. Initialize streaming iterators from source and target tables
         let mut source_iterators = Vec::new();
         let mut all_files_to_remove = Vec::new();
 
-        for path in l0_files.iter().chain(l1_files.iter()) {
+        for path in source_files.iter().chain(target_files.iter()) {
             if let Ok(reader) = SsTableReader::open(path) {
                 let stream = reader.into_stream()?;
                 source_iterators.push(stream);
@@ -111,12 +122,15 @@ impl CompactionManager {
             }
         }
 
-        let new_sst_path = self.db_path.join(format!("L1_{:06}.sst", self.next_sst_id));
+        let new_sst_path = self.db_path.join(format!("L{}_{:06}.sst", target_level, self.next_sst_id));
         self.next_sst_id += 1;
         let mut builder = SsTableBuilder::create(&new_sst_path)?;
 
         let mut last_user_key: Option<Bytes> = None;
         let mut compacted_count = 0;
+
+        let at_bottom_level = target_level == MAX_LEVELS - 1
+            || self.manifest.levels[(target_level + 1)..].iter().all(|l| l.is_empty());
 
         while let Some(top) = heap.pop() {
             let current_user_key = top.kv.key.user_key.clone();
@@ -132,7 +146,6 @@ impl CompactionManager {
 
                 // If tombstone at the bottom level, purge it to reclaim disk space
                 let is_tombstone = top.kv.key.value_type == ValueType::Deletion;
-                let at_bottom_level = self.manifest.levels[2..].iter().all(|l| l.is_empty());
 
                 if !(is_tombstone && at_bottom_level) {
                     builder.add(&top.kv)?;
@@ -151,19 +164,30 @@ impl CompactionManager {
 
         if compacted_count > 0 {
             builder.finish()?;
-            self.manifest.levels[1] = vec![new_sst_path];
+            self.manifest.levels[target_level] = vec![new_sst_path];
         } else {
             // All keys were purged tombstones
             let _ = fs::remove_file(&new_sst_path);
-            self.manifest.levels[1].clear();
+            self.manifest.levels[target_level].clear();
         }
 
-        // 3. Clear L0 and delete old files
-        self.manifest.levels[0].clear();
+        // 3. Clear source level and delete old files
+        self.manifest.levels[source_level].clear();
         for old_file in all_files_to_remove {
             let _ = fs::remove_file(old_file);
         }
 
+        Ok(())
+    }
+
+    /// Automatically cascades compaction down through all levels where thresholds are exceeded.
+    pub fn run_cascading_compaction(&mut self) -> io::Result<()> {
+        for level in 0..(MAX_LEVELS - 1) {
+            let threshold = if level == 0 { L0_COMPACTION_TRIGGER } else { 2 };
+            if self.manifest.levels[level].len() >= threshold {
+                self.compact_level(level)?;
+            }
+        }
         Ok(())
     }
 }
