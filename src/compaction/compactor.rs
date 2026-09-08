@@ -88,22 +88,22 @@ impl CompactionManager {
         let l0_files = self.manifest.levels[0].clone();
         let l1_files = self.manifest.levels[1].clone();
 
-        // 1. Read all entries from L0 and L1 tables
-        let mut source_iterators: Vec<std::vec::IntoIter<KeyValue>> = Vec::new();
+        // 1. Initialize zero-memory streaming iterators from L0 and L1 tables
+        let mut source_iterators = Vec::new();
         let mut all_files_to_remove = Vec::new();
 
         for path in l0_files.iter().chain(l1_files.iter()) {
-            if let Ok(mut reader) = SsTableReader::open(path) {
-                let entries = reader.iter_all()?;
-                source_iterators.push(entries.into_iter());
+            if let Ok(reader) = SsTableReader::open(path) {
+                let stream = reader.into_stream()?;
+                source_iterators.push(stream);
                 all_files_to_remove.push(path.clone());
             }
         }
 
-        // 2. K-Way Merge using Min-Heap
+        // 2. Streaming K-Way Merge using Min-Heap
         let mut heap: BinaryHeap<MergeIteratorEntry> = BinaryHeap::new();
         for (idx, iter) in source_iterators.iter_mut().enumerate() {
-            if let Some(kv) = iter.next() {
+            if let Some(Ok(kv)) = iter.next() {
                 heap.push(MergeIteratorEntry {
                     kv,
                     source_idx: idx,
@@ -140,8 +140,8 @@ impl CompactionManager {
                 }
             }
 
-            // Refill heap from the source iterator
-            if let Some(next_kv) = source_iterators[top.source_idx].next() {
+            // Refill heap from streaming source iterator
+            if let Some(Ok(next_kv)) = source_iterators[top.source_idx].next() {
                 heap.push(MergeIteratorEntry {
                     kv: next_kv,
                     source_idx: top.source_idx,

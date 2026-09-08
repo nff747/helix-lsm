@@ -141,7 +141,18 @@ impl SsTableReader {
         Ok(None)
     }
 
-    /// Sequential iteration through all entries (used during Compaction)
+    /// Convert reader into a low-memory streaming entry iterator for compaction
+    pub fn into_stream(self) -> io::Result<SsTableStreamIterator> {
+        Ok(SsTableStreamIterator {
+            file: self.file,
+            block_metas: self.block_metas,
+            current_block_idx: 0,
+            current_block_cursor: None,
+            current_block_len: 0,
+        })
+    }
+
+    /// Sequential iteration through all entries (retains backward compatibility)
     pub fn iter_all(&mut self) -> io::Result<Vec<KeyValue>> {
         let mut results = Vec::new();
 
@@ -183,5 +194,76 @@ impl SsTableReader {
 
     pub fn largest_key(&self) -> &[u8] {
         &self.largest_key
+    }
+}
+
+pub struct SsTableStreamIterator {
+    file: File,
+    block_metas: Vec<BlockMeta>,
+    current_block_idx: usize,
+    current_block_cursor: Option<io::Cursor<Vec<u8>>>,
+    current_block_len: usize,
+}
+
+impl Iterator for SsTableStreamIterator {
+    type Item = io::Result<KeyValue>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(cursor) = &mut self.current_block_cursor {
+                if (cursor.position() as usize) < self.current_block_len {
+                    let seq_num = match cursor.read_u64::<LittleEndian>() {
+                        Ok(v) => v,
+                        Err(e) => return Some(Err(e)),
+                    };
+                    let op_type = match cursor.read_u8() {
+                        Ok(v) => v,
+                        Err(e) => return Some(Err(e)),
+                    };
+                    let key_len = match cursor.read_u16::<LittleEndian>() {
+                        Ok(v) => v as usize,
+                        Err(e) => return Some(Err(e)),
+                    };
+                    let val_len = match cursor.read_u32::<LittleEndian>() {
+                        Ok(v) => v as usize,
+                        Err(e) => return Some(Err(e)),
+                    };
+
+                    let mut k_buf = vec![0u8; key_len];
+                    if let Err(e) = cursor.read_exact(&mut k_buf) {
+                        return Some(Err(e));
+                    }
+
+                    let mut v_buf = vec![0u8; val_len];
+                    if let Err(e) = cursor.read_exact(&mut v_buf) {
+                        return Some(Err(e));
+                    }
+
+                    return Some(Ok(KeyValue {
+                        key: InternalKey::new(Bytes::from(k_buf), seq_num, ValueType::from(op_type)),
+                        value: Bytes::from(v_buf),
+                    }));
+                }
+            }
+
+            // Advance to next block
+            if self.current_block_idx >= self.block_metas.len() {
+                return None;
+            }
+
+            let meta = &self.block_metas[self.current_block_idx];
+            if let Err(e) = self.file.seek(SeekFrom::Start(meta.offset)) {
+                return Some(Err(e));
+            }
+
+            let mut block_buf = vec![0u8; meta.length as usize];
+            if let Err(e) = self.file.read_exact(&mut block_buf) {
+                return Some(Err(e));
+            }
+
+            self.current_block_len = meta.length as usize;
+            self.current_block_cursor = Some(io::Cursor::new(block_buf));
+            self.current_block_idx += 1;
+        }
     }
 }
