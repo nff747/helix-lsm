@@ -19,3 +19,19 @@ Benchmarks: 1.4M+ write IOPS on local NVMe storage.
 Repo: https://github.com/nff747/helix-lsm
 License: MIT
 ```
+
+---
+
+## 2. Twitter / X Post (Under 280 chars - no subscription needed)
+```text
+I built HelixLSM: lock-free distributed LSM storage engine in Rust.
+
+- Lock-free MemTable (Crossbeam Skiplist)
+- Multi-level compaction (L0-L6)
+- Consistent hash cluster router
+- 1.4M+ write IOPS on NVMe (MIT)
+
+https://github.com/nff747/helix-lsm
+
+#rustlang #database #systems
+```
