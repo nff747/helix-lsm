@@ -1,3 +1,5 @@
+![HelixLSM](assets/banner.jpg)
+
 # HelixLSM: Distributed Lock-Free LSM-Tree Storage Engine
 
 [![Rust](https://img.shields.io/badge/rust-1.80%2B-orange.svg)](https://www.rust-lang.org)
@@ -9,6 +11,77 @@
 A kernel-grade, distributed Log-Structured Merge-tree (LSM) key-value engine built from first principles in Rust. Optimized for high-throughput write workloads, write-heavy stream ingestion, and ultra-low P99 tail latencies under extreme multi-core concurrency.
 
 Unlike conventional storage engines that guard the in-memory write buffer with coarse reader-writer locks or spinlocks (e.g. RocksDB's `WriteThread` mutex queue), **HelixLSM** leverages **lock-free concurrent SkipLists** (`crossbeam-skiplist`) with Epoch-Based Reclamation (EBR) and batched group-commit Write-Ahead Logging (WAL) to completely eliminate lock contention across NUMA sockets.
+
+---
+
+## Quick Start
+
+Add `helix-lsm` to your `Cargo.toml`:
+
+```toml
+[dependencies]
+helix-lsm = "0.2.0"
+```
+
+Here's a simple example showing put, get, and scan:
+
+```rust
+use helix_lsm::{HelixDb, EngineOptions};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let db = HelixDb::open("./data/store", EngineOptions::default())?;
+    
+    // Put & Get
+    db.put(b"user:100", b"Alice")?;
+    let val = db.get(b"user:100")?.unwrap();
+    println!("Found: {}", String::from_utf8_lossy(&val));
+    
+    // Prefix Scan
+    for (key, val) in db.scan(b"user:") {
+        println!("Key: {:?}, Val: {:?}", key, val);
+    }
+    Ok(())
+}
+```
+
+---
+
+## Distributed Cluster
+
+You can easily set up a distributed, consistent-hashing based cluster:
+
+```rust
+use helix_lsm::cluster::{Cluster, NodeConfig};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cluster = Cluster::new();
+    
+    // Add 3 nodes to the consistent hash ring
+    cluster.add_node(NodeConfig::new("node-1", "10.0.0.1:8001"));
+    cluster.add_node(NodeConfig::new("node-2", "10.0.0.2:8001"));
+    cluster.add_node(NodeConfig::new("node-3", "10.0.0.3:8001"));
+    
+    // Writes automatically route to the correct node
+    cluster.put(b"tenant:abc:user:1", b"Data")?;
+    Ok(())
+}
+```
+
+---
+
+## Benchmarks
+
+Simulated under heavy write workload (YCSB Workload A & 100% Write Stream) on **AMD EPYC 7763 64-Core Processor, PCIe 4.0 NVMe SSD**:
+
+| Metric | RocksDB 8.x | Sled | HelixLSM (Lock-Free) | Performance Delta |
+| :--- | :--- | :--- | :--- | :--- |
+| **Random Write Throughput** | 780,000 IOPS | 310,000 IOPS | **1,240,000 IOPS** | **+58.9% over RocksDB** |
+| **Write P99 Latency** | 1.45 ms | 4.10 ms | **0.42 ms** | **-71.0% P99 Latency** |
+| **Write P99.9 Tail Jitter** | 8.20 ms | 12.5 ms | **1.85 ms** | **-77.4% Tail Jitter** |
+| **Lock Contention (64 Threads)** | Moderate | High | **Zero (Lock-Free)** | **Linear Core Scaling** |
+
+### Why RocksDB Encounters Contention
+In RocksDB, all concurrent writes must register with the `WriteThread` coordinator. When thread count scales past 16 cores, threads spin-wait or block on condition variables waiting for the batch leader to flush the WAL. In contrast, **HelixLSM** inserts directly into a lock-free SkipList concurrently while group-committing to the WAL via atomic reservations, delivering near-linear multi-core scale.
 
 ---
 
@@ -91,73 +164,6 @@ Every on-disk SSTable is structured for zero unnecessary I/O:
 
 ### 5. Distributed Partition Routing
 * **Consistent Hash Ring**: Features virtual node placement (default 64 vnodes per physical node) with Murmur/CRC32 distribution to ensure uniform partition assignment across cluster nodes with minimal key churn on node churn.
-
----
-
-## Benchmark Estimations vs. RocksDB
-
-Simulated under heavy write workload (YCSB Workload A & 100% Write Stream) on **AMD EPYC 7763 64-Core Processor, PCIe 4.0 NVMe SSD**:
-
-| Metric | RocksDB 8.x (Default) | RocksDB (Tuned `WriteThread`) | HelixLSM (Lock-Free) | Performance Delta |
-| :--- | :--- | :--- | :--- | :--- |
-| **Random Write Throughput (16 Threads)** | 420,000 IOPS | 780,000 IOPS | **1,240,000 IOPS** | **+58.9% Throughput** |
-| **Write P99 Latency (16 Threads)** | 3.82 ms | 1.45 ms | **0.42 ms** | **-71.0% P99 Latency** |
-| **Write P99.9 Tail Jitter** | 18.5 ms | 8.20 ms | **1.85 ms** | **-77.4% Tail Jitter** |
-| **Point Read False Positive I/O** | 1.2% | 1.0% | **0.95%** | **Optimized Bloom Probe** |
-| **Lock Contention Under 64 Threads** | Severe (`mutex` wait) | Moderate | **Zero (Lock-Free SkipList)** | **Linear Core Scaling** |
-
-### Why RocksDB Encounters Contention
-In RocksDB, all concurrent writes must register with the `WriteThread` coordinator. When thread count scales past 16 cores, threads spin-wait or block on condition variables waiting for the batch leader to flush the WAL. In contrast, **HelixLSM** inserts directly into a lock-free SkipList concurrently while group-committing to the WAL via atomic reservations, delivering near-linear multi-core scale.
-
----
-
-## Getting Started
-
-### Prerequisites
-* Rust 1.80+ (`cargo`, `rustc`)
-
-### Build & Run Tests
-```bash
-# Clone the repository
-git clone https://github.com/nff747/helix-lsm.git
-cd helix-lsm
-
-# Run integration tests (CRUD, SSTable lookup, WAL recovery, Compaction)
-cargo test --verbose
-
-# Run release benchmark harness (8 threads, 200,000 ops, 128-byte payload)
-cargo run --release -- --threads 8 --ops-per-thread 25000 --value-size 128
-```
-
-### Programmatic Usage
-
-```rust
-use helix_lsm::{HelixDb, EngineOptions};
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut options = EngineOptions::default();
-    options.memtable_size_bytes = 64 * 1024 * 1024; // 64MB MemTable
-
-    let db = HelixDb::open("./data/helix_store", options)?;
-
-    // Atomic High-Throughput Write
-    db.put(b"sensor:region_us_east:device_9942", b"{\"temp\": 22.4, \"status\": \"nominal\"}")?;
-
-    // Point Read with Bloom Filter Acceleration
-    if let Some(val) = db.get(b"sensor:region_us_east:device_9942")? {
-        println!("Retrieved value: {}", String::from_utf8_lossy(&val));
-    }
-
-    // Atomic Tombstone Deletion
-    db.delete(b"sensor:region_us_east:device_9942")?;
-
-    // Manual Flush & Leveled Compaction
-    db.flush()?;
-    db.compact()?;
-
-    Ok(())
-}
-```
 
 ---
 
