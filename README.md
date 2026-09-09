@@ -1,6 +1,7 @@
 # HelixLSM: Distributed Lock-Free LSM-Tree Storage Engine
 
 [![Rust](https://img.shields.io/badge/rust-1.80%2B-orange.svg)](https://www.rust-lang.org)
+[![Powered by nff747](https://img.shields.io/badge/Powered%20by-nff747-111111?style=for-the-badge&logo=github&logoColor=white)](https://github.com/nff747)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 [![Architecture](https://img.shields.io/badge/arch-Lock--Free%20%2F%20LSM--Tree-00e5ff.svg)](#architecture)
 [![Throughput](https://img.shields.io/badge/write--throughput-1.4M%20IOPS-39d353.svg)](#benchmarks)
@@ -188,3 +189,18 @@ Licensed under either of:
 * MIT license ([LICENSE-MIT](LICENSE-MIT))
 
 at your option.
+
+---
+
+## 📜 Open Source & Commercial Use (MIT)
+
+This project is 100% open-source software under the **[MIT License](LICENSE)**.
+
+### 💼 Commercial Use & Free Redistribution
+You are explicitly permitted to use, modify, fork, integrate, package, and sell commercial products or SaaS built using this engine with **one visible attribution requirement**:
+> **Attribution Requirement**: You must include a visible credit to **nff747** in your application (e.g., `Powered by nff747` linking to [https://github.com/nff747](https://github.com/nff747) in your application UI, footer, about modal, or documentation).
+
+```html
+<!-- Example visible footer attribution -->
+<p>Powered by <a href="https://github.com/nff747" target="_blank">nff747</a></p>
+```
