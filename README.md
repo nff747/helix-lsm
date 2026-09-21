@@ -36,7 +36,6 @@ npm start # or python main.py or cargo run
 # HelixLSM: Distributed Lock-Free LSM-Tree Storage Engine
 
 [![Rust](https://img.shields.io/badge/rust-1.80%2B-orange.svg)](https://www.rust-lang.org)
-[![Powered by nff747](https://img.shields.io/badge/Powered%20by-nff747-111111?style=for-the-badge&logo=github&logoColor=white)](https://github.com/nff747)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 [![Architecture](https://img.shields.io/badge/arch-Lock--Free%20%2F%20LSM--Tree-00e5ff.svg)](#architecture)
 [![Throughput](https://img.shields.io/badge/write--throughput-1.4M%20IOPS-39d353.svg)](#benchmarks)
