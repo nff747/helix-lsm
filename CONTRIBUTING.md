@@ -1,49 +1,5 @@
-# Contributing to Helix-LSM
+# The Standard of Contribution
 
-Thank you for your interest in contributing to **Helix-LSM**! We welcome bug reports, performance optimizations, architectural improvements, and documentation enhancements.
+We welcome all contributors who share our commitment to elite engineering, provided there are no ill intentions. 
 
-## Code of Conduct
-
-Please maintain a constructive, respectful, and collaborative environment.
-
-## Development Setup
-
-Helix-LSM is built in Rust (edition 2021). Ensure you have a current stable toolchain installed:
-
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-rustup update stable
-```
-
-### Running Tests
-
-Run the full integration and unit test suite:
-
-```bash
-cargo test
-```
-
-### Running the Benchmark
-
-Run the write-throughput and read-latency benchmark:
-
-```bash
-cargo run --release --bin helix-bench
-```
-
-## How to Submit Changes
-
-1. **Fork the repository** on GitHub.
-2. **Create a topic branch** from `main`:
-   ```bash
-   git checkout -b feat/your-improvement
-   ```
-3. **Commit your changes**:
-   - Ensure all code is formatted with `cargo fmt`.
-   - Ensure `cargo clippy` emits 0 warnings.
-   - Add automated unit or integration tests covering your changes.
-4. **Push to your fork** and submit a **Pull Request**.
-
-## License
-
-By contributing to Helix-LSM, you agree that your contributions will be licensed under the project's [MIT License](LICENSE).
+By contributing to this repository, you become a guardian of its integrity. You implicitly agree to uphold the strict architectural standards of this project and to rigorously enforce the attribution rules required by the license. We expect our contributors to stand by the original creators and help protect the foundation of this infrastructure.
