@@ -1,3 +1,6 @@
+pub struct WalStub {
+}
+
 pub struct MemTable {
 }
 
