@@ -39,6 +39,13 @@ impl MemTable {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_insert() {
+        let mut memtable = MemTable::new();
+        memtable.insert("key1".to_string(), "value1".to_string());
+        assert_eq!(memtable.len(), 1);
+    }
 }
 
 fn main() {
