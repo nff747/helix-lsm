@@ -1,5 +1,10 @@
 use std::collections::BTreeMap;
 
+#[derive(Debug)]
+pub enum Error {
+    NotFound,
+}
+
 pub struct WalStub {
 }
 
