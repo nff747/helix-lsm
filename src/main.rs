@@ -8,6 +8,12 @@ pub enum Error {
 pub struct WalStub {
 }
 
+impl WalStub {
+    pub fn append(&mut self, _key: &str, _value: &str) {
+        // Mock append logic
+    }
+}
+
 pub struct MemTable {
     data: BTreeMap<String, String>,
 }
