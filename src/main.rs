@@ -21,6 +21,10 @@ impl MemTable {
     pub fn get(&self, key: &str) -> Option<String> {
         self.data.get(key).cloned()
     }
+
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
 }
 
 fn main() {
