@@ -46,6 +46,14 @@ mod tests {
         memtable.insert("key1".to_string(), "value1".to_string());
         assert_eq!(memtable.len(), 1);
     }
+
+    #[test]
+    fn test_get() {
+        let mut memtable = MemTable::new();
+        memtable.insert("key1".to_string(), "value1".to_string());
+        assert_eq!(memtable.get("key1"), Some("value1".to_string()));
+        assert_eq!(memtable.get("key2"), None);
+    }
 }
 
 fn main() {
