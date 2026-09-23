@@ -9,6 +9,10 @@ pub struct WalStub {
 }
 
 impl WalStub {
+    pub fn new() -> Self {
+        Self {}
+    }
+
     pub fn append(&mut self, _key: &str, _value: &str) {
         // Mock append logic
     }
@@ -16,16 +20,19 @@ impl WalStub {
 
 pub struct MemTable {
     data: BTreeMap<String, String>,
+    wal: WalStub,
 }
 
 impl MemTable {
     pub fn new() -> Self {
         Self {
             data: BTreeMap::new(),
+            wal: WalStub::new(),
         }
     }
 
     pub fn insert(&mut self, key: String, value: String) {
+        self.wal.append(&key, &value);
         self.data.insert(key, value);
     }
 
@@ -63,5 +70,7 @@ mod tests {
 }
 
 fn main() {
-    println!("Hello, world!");
+    let mut memtable = MemTable::new();
+    memtable.insert("hello".to_string(), "world".to_string());
+    println!("Value for 'hello': {:?}", memtable.get("hello"));
 }
