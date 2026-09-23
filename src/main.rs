@@ -1,12 +1,17 @@
+use std::collections::BTreeMap;
+
 pub struct WalStub {
 }
 
 pub struct MemTable {
+    data: BTreeMap<String, String>,
 }
 
 impl MemTable {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            data: BTreeMap::new(),
+        }
     }
 }
 
