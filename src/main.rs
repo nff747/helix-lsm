@@ -13,6 +13,10 @@ impl MemTable {
             data: BTreeMap::new(),
         }
     }
+
+    pub fn insert(&mut self, key: String, value: String) {
+        self.data.insert(key, value);
+    }
 }
 
 fn main() {
