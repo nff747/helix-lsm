@@ -47,6 +47,10 @@ impl MemTable {
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
     }
+
+    pub fn clear(&mut self) {
+        self.data.clear();
+    }
 }
 
 #[cfg(test)]
