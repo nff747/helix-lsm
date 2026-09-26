@@ -1,80 +1,46 @@
-use std::collections::BTreeMap;
+use helix_lsm::{LsmConfig, LsmEngine};
+use std::time::Instant;
 
-#[derive(Debug)]
-pub enum Error {
-    NotFound,
-}
+fn main() -> std::io::Result<()> {
+    println!("⚡ Helix-LSM: Log-Structured Merge Tree Storage Engine");
+    println!("--------------------------------------------------");
 
-pub struct WalStub {
-}
+    let db_path = std::env::temp_dir().join("helix_lsm_demo");
+    let config = LsmConfig {
+        memtable_threshold_bytes: 32 * 1024,
+        sstable_compaction_threshold: 4,
+    };
 
-impl WalStub {
-    pub fn new() -> Self {
-        Self {}
+    let mut engine = LsmEngine::open(&db_path, config)?;
+    println!("Opened storage engine at {:?}", db_path);
+
+    println!("\nWriting 5,000 keys...");
+    let start = Instant::now();
+    for i in 0..5000 {
+        let key = format!("user:{:06}", i);
+        let val = format!("{{\"name\":\"Dev_{}\",\"status\":\"active\"}}", i);
+        engine.put(key.as_bytes(), val.as_bytes())?;
     }
+    let elapsed = start.elapsed();
+    println!("Write completed in {:.2?} ({:.0} writes/sec)", elapsed, 5000.0 / elapsed.as_secs_f64());
 
-    pub fn append(&mut self, _key: &str, _value: &str) {
-        // Mock append logic
-    }
-}
-
-pub struct MemTable {
-    data: BTreeMap<String, String>,
-    wal: WalStub,
-}
-
-impl MemTable {
-    pub fn new() -> Self {
-        Self {
-            data: BTreeMap::new(),
-            wal: WalStub::new(),
+    println!("\nReading back keys...");
+    let read_start = Instant::now();
+    let mut hits = 0;
+    for i in 0..5000 {
+        let key = format!("user:{:06}", i);
+        if let Some(_) = engine.get(key.as_bytes())? {
+            hits += 1;
         }
     }
+    let read_elapsed = read_start.elapsed();
+    println!("Read {}/5000 keys in {:.2?} ({:.0} reads/sec)", hits, read_elapsed, 5000.0 / read_elapsed.as_secs_f64());
 
-    pub fn insert(&mut self, key: String, value: String) {
-        self.wal.append(&key, &value);
-        self.data.insert(key, value);
-    }
+    println!("\nFlushing MemTable and compacting SSTables...");
+    engine.flush()?;
+    engine.compact()?;
+    println!("Compaction finished successfully. Engine clean.");
 
-    pub fn get(&self, key: &str) -> Option<String> {
-        self.data.get(key).cloned()
-    }
-
-    pub fn len(&self) -> usize {
-        self.data.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.data.is_empty()
-    }
-
-    pub fn clear(&mut self) {
-        self.data.clear();
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_insert() {
-        let mut memtable = MemTable::new();
-        memtable.insert("key1".to_string(), "value1".to_string());
-        assert_eq!(memtable.len(), 1);
-    }
-
-    #[test]
-    fn test_get() {
-        let mut memtable = MemTable::new();
-        memtable.insert("key1".to_string(), "value1".to_string());
-        assert_eq!(memtable.get("key1"), Some("value1".to_string()));
-        assert_eq!(memtable.get("key2"), None);
-    }
-}
-
-fn main() {
-    let mut memtable = MemTable::new();
-    memtable.insert("hello".to_string(), "world".to_string());
-    println!("Value for 'hello': {:?}", memtable.get("hello"));
+    let _ = std::fs::remove_dir_all(&db_path);
+    Ok(())
 }
