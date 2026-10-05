@@ -1,1 +1,26 @@
 /target
+
+# Security & SCA Hygiene Rules
+.env
+.env.*
+*.env
+*.pem
+*.key
+*.cert
+*.pfx
+*.p12
+node_modules/
+dist/
+build/
+out/
+target/
+.next/
+*.tsbuildinfo
+*.log
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.DS_Store
+Thumbs.db
