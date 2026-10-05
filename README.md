@@ -2,7 +2,7 @@
 
 > Lightweight, high-performance Log-Structured Merge-tree (LSM) embedded storage engine in Rust.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-Apache_2.0-blue)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-2024%20Edition-orange.svg)](https://www.rust-lang.org/)
 
 `helix-lsm` is an embedded key-value storage engine engineered for write-heavy workloads with predictable latency, crash-resilient write-ahead logging, and background SSTable compaction.

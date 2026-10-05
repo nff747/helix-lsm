@@ -2,7 +2,7 @@
 name = "helix-lsm"
 version = "0.1.0"
 edition = "2024"
-license = "MIT"
+license = "Apache-2.0"
 authors = ["nff747 <nff747@users.noreply.github.com>"]
 description = "Log-Structured Merge-tree (LSM) storage engine with atomic SSTable compaction, Bloom filters, and zero-allocation point lookups."
 repository = "https://github.com/nff747/helix-lsm"
