@@ -13,6 +13,7 @@ pub mod compactor;
 pub mod memtable;
 pub mod sstable;
 pub mod wal;
+pub mod manifest;
 pub mod leveled_compaction;
 pub mod tombstone_gc;
 pub mod merge_iter;
