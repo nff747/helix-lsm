@@ -13,6 +13,7 @@ pub mod compactor;
 pub mod memtable;
 pub mod sstable;
 pub mod wal;
+pub mod crc;
 
 use std::fs;
 use std::io;

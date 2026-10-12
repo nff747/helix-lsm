@@ -9,3 +9,6 @@ repository = "https://github.com/nff747/helix-lsm"
 readme = "README.md"
 
 [dependencies]
+
+[dev-dependencies]
+tempfile = "3"
