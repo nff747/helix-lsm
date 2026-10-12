@@ -13,6 +13,7 @@ pub mod compactor;
 pub mod memtable;
 pub mod sstable;
 pub mod wal;
+pub mod stats;
 pub mod comparator;
 pub mod write_batch;
 pub mod column_family;
