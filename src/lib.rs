@@ -13,6 +13,7 @@ pub mod compactor;
 pub mod memtable;
 pub mod sstable;
 pub mod wal;
+pub mod table_builder;
 pub mod data_block;
 pub mod wal_aligned;
 pub mod counting_bloom;
