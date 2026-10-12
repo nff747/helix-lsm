@@ -13,6 +13,7 @@ pub mod compactor;
 pub mod memtable;
 pub mod sstable;
 pub mod wal;
+pub mod sstable_meta;
 pub mod block_index;
 pub mod block_cache;
 pub mod prefix_block;
