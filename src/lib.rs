@@ -13,6 +13,7 @@ pub mod compactor;
 pub mod memtable;
 pub mod sstable;
 pub mod wal;
+pub mod write_throttle;
 pub mod snapshot;
 pub mod skiplist_memtable;
 pub mod range_scan;
