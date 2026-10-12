@@ -13,6 +13,7 @@ pub mod compactor;
 pub mod memtable;
 pub mod sstable;
 pub mod wal;
+pub mod wal_aligned;
 pub mod counting_bloom;
 pub mod write_throttle;
 pub mod snapshot;
