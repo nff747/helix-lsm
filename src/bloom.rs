@@ -33,7 +33,23 @@ impl BloomFilter {
     }
 
     pub fn num_hashes(&self) -> usize {
-        this_or(self.num_hashes)
+        self.num_hashes
+    }
+
+    pub fn num_bits(&self) -> usize {
+        self.num_bits
+    }
+
+    /// Theoretical false positive probability estimator: (1 - e^(-k * n / m))^k
+    pub fn estimate_false_positive_rate(&self, num_keys: usize) -> f64 {
+        if self.num_bits == 0 || num_keys == 0 {
+            return 0.0;
+        }
+        let k = self.num_hashes as f64;
+        let m = self.num_bits as f64;
+        let n = num_keys as f64;
+        let exponent = -k * n / m;
+        (1.0 - exponent.exp()).powf(k)
     }
 
     pub fn insert(&mut self, key: &[u8]) {
@@ -71,10 +87,6 @@ impl BloomFilter {
         }
         (h1, h2 | 1)
     }
-}
-
-fn this_or(val: usize) -> usize {
-    val
 }
 
 #[cfg(test)]
