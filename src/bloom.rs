@@ -104,3 +104,11 @@ mod tests {
         assert!(!filter.may_contain(b"user_999"));
     }
 }
+
+    #[test]
+    fn test_bloom_false_positive_estimation() {
+        let filter = BloomFilter::new(1000, 10);
+        // With 10 bits per key and optimal k=7 hashes, false positive rate should be ~1% (0.008 - 0.012)
+        let rate = filter.estimate_false_positive_rate(1000);
+        assert!(rate > 0.005 && rate < 0.015, "Expected rate around 0.008, got {}", rate);
+    }
