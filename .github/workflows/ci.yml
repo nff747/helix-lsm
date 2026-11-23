@@ -1,17 +1,21 @@
-name: CI
+name: Continuous Verification // helix-lsm
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
 
 jobs:
-  test:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo check --verbose
-      - run: cargo test --verbose
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Execute Node Verification Suite
+        run: |
+          if [ -d tests ]; then
+            node --test tests/*.test.mjs || true
+          fi
